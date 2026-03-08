@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { generateStocks, generateIndicators, generatePriceHistory, detectGoldenCrossEvents } from '../utils/mockData';
 import { SubscriptionForm } from '../components/SubscriptionForm';
