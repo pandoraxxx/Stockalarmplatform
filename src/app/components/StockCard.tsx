@@ -1,4 +1,4 @@
-import { Stock, formatGoldenCrossDate } from '../utils/mockData';
+import { Stock, formatGoldenCrossDate, type GoldenCrossPairKey } from '../utils/mockData';
 import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -8,9 +8,10 @@ import { useState } from 'react';
 
 interface StockCardProps {
   stock: Stock;
+  goldenCrossPair?: GoldenCrossPairKey;
 }
 
-export function StockCard({ stock }: StockCardProps) {
+export function StockCard({ stock, goldenCrossPair = '5-20' }: StockCardProps) {
   const [favorite, setFavorite] = useState(isFavorite(stock.code));
   
   const isPositive = stock.change >= 0;
@@ -67,7 +68,7 @@ export function StockCard({ stock }: StockCardProps) {
           <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t">
             <div>
               <div>成交量: {(stock.volume / 1000000).toFixed(2)}M</div>
-              <div>最近金叉: <span className="font-medium text-primary">{stock.lastGoldenCross ? formatGoldenCrossDate(stock.lastGoldenCross) : '暂无'}</span></div>
+              <div>最近金叉: <span className="font-medium text-primary">{stock.lastGoldenCrossByPair[goldenCrossPair] ? formatGoldenCrossDate(stock.lastGoldenCrossByPair[goldenCrossPair]!) : '暂无'}</span></div>
             </div>
           </div>
         </div>

@@ -1,3 +1,12 @@
+// 金叉均线组合预设（shortPeriod, longPeriod）
+export const MA_PAIRS = [
+  { short: 5, long: 20, key: '5-20', label: 'MA5/20' },
+  { short: 20, long: 50, key: '20-50', label: 'MA20/50' },
+  { short: 20, long: 60, key: '20-60', label: 'MA20/60' },
+] as const;
+
+export type GoldenCrossPairKey = typeof MA_PAIRS[number]['key'];
+
 // 模拟港股数据
 export interface Stock {
   id: string;
@@ -15,7 +24,10 @@ export interface Stock {
   high52w: number;
   low52w: number;
   sector: string;
-  lastGoldenCross: GoldenCrossEvent | null; // 最近一次黄金交叉
+  /** 按均线组合存储的最近一次金叉，key 如 "5-20" */
+  lastGoldenCrossByPair: Record<GoldenCrossPairKey, GoldenCrossEvent | null>;
+  /** 兼容：默认组合 5-20 的最近金叉 */
+  lastGoldenCross: GoldenCrossEvent | null;
 }
 
 export interface StockIndicator {
@@ -40,12 +52,15 @@ export interface PriceHistory {
 
 // 黄金交叉事件
 export interface GoldenCrossEvent {
-  date: string;      // "2025-03-08"
-  time: string;      // "16:00"
-  shortMA: number;   // MA5 值
-  longMA: number;    // MA20 值
-  close: number;     // 当日收盘价
-  type: 'golden';    // 黄金交叉
+  date: string;
+  time: string;
+  shortMA: number;
+  longMA: number;
+  close: number;
+  type: 'golden';
+  shortPeriod: number;
+  longPeriod: number;
+  pairKey: GoldenCrossPairKey;
 }
 
 // 格式化金叉日期时间为 "X月X日 HH:mm"
@@ -60,11 +75,12 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-// 检测黄金交叉事件（MA5 上穿 MA20）
+// 检测黄金交叉事件（短均线上穿长均线）
 export function detectGoldenCrossEvents(
   priceHistory: PriceHistory[],
   shortPeriod: number = 5,
-  longPeriod: number = 20
+  longPeriod: number = 20,
+  pairKey: GoldenCrossPairKey = '5-20'
 ): GoldenCrossEvent[] {
   const events: GoldenCrossEvent[] = [];
   if (priceHistory.length < longPeriod + 1) return events;
@@ -88,7 +104,10 @@ export function detectGoldenCrossEvents(
         shortMA: parseFloat(shortMA.toFixed(2)),
         longMA: parseFloat(longMA.toFixed(2)),
         close: priceHistory[i].close,
-        type: 'golden'
+        type: 'golden',
+        shortPeriod,
+        longPeriod,
+        pairKey
       });
     }
   }
@@ -142,9 +161,18 @@ function generateStock(index: number): Stock {
   const basePrice = seededRandom(seed) * 500 + 10;
 
   const priceHistory = generatePriceHistoryWithSeed(seed, basePrice);
-  const goldenCrossEvents = detectGoldenCrossEvents(priceHistory);
-  const lastGoldenCross =
-    goldenCrossEvents.length > 0 ? goldenCrossEvents[goldenCrossEvents.length - 1] : null;
+  const lastGoldenCrossByPair = {} as Record<GoldenCrossPairKey, GoldenCrossEvent | null>;
+  for (const pair of MA_PAIRS) {
+    const events = detectGoldenCrossEvents(
+      priceHistory,
+      pair.short,
+      pair.long,
+      pair.key
+    );
+    lastGoldenCrossByPair[pair.key] =
+      events.length > 0 ? events[events.length - 1] : null;
+  }
+  const lastGoldenCross = lastGoldenCrossByPair['5-20'];
 
   const lastClose = priceHistory[priceHistory.length - 1]?.close ?? basePrice;
   const prevClose = priceHistory[priceHistory.length - 2]?.close ?? basePrice;
@@ -168,6 +196,7 @@ function generateStock(index: number): Stock {
     high52w: parseFloat((basePrice * 1.5).toFixed(2)),
     low52w: parseFloat((basePrice * 0.7).toFixed(2)),
     sector: sectors[sectorIndex],
+    lastGoldenCrossByPair,
     lastGoldenCross
   };
 }

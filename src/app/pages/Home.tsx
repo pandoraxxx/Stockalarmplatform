@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
-import { generateStocks, Stock, popularStocks } from '../utils/mockData';
+import React, { useState, useMemo, useEffect } from 'react';
+import { generateStocks, Stock, popularStocks, MA_PAIRS, type GoldenCrossPairKey } from '../utils/mockData';
+import { getGoldenCrossPair, setGoldenCrossPair } from '../utils/storage';
 import { StockCard } from '../components/StockCard';
 import { StockTable } from '../components/StockTable';
 import { Input } from '../components/ui/input';
@@ -19,6 +20,14 @@ export function Home() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState('all');
+  const [goldenCrossPair, setGoldenCrossPairState] = useState<GoldenCrossPairKey>(() => {
+    const saved = getGoldenCrossPair();
+    return (MA_PAIRS.some(p => p.key === saved) ? saved : '5-20') as GoldenCrossPairKey;
+  });
+  const handleGoldenCrossPairChange = (key: string) => {
+    setGoldenCrossPair(key);
+    setGoldenCrossPairState(key as GoldenCrossPairKey);
+  };
   
   // 获取所有板块
   const sectors = useMemo(() => {
@@ -76,9 +85,10 @@ export function Home() {
         case 'marketCap':
           return b.marketCap - a.marketCap;
         case 'lastGoldenCross': {
-          // 有金叉的排前面，按金叉日期从近到远；无金叉的排最后
-          const aDate = a.lastGoldenCross ? new Date(a.lastGoldenCross.date).getTime() : 0;
-          const bDate = b.lastGoldenCross ? new Date(b.lastGoldenCross.date).getTime() : 0;
+          const aEv = a.lastGoldenCrossByPair[goldenCrossPair];
+          const bEv = b.lastGoldenCrossByPair[goldenCrossPair];
+          const aDate = aEv ? new Date(aEv.date).getTime() : 0;
+          const bDate = bEv ? new Date(bEv.date).getTime() : 0;
           return bDate - aDate;
         }
         default:
@@ -87,7 +97,7 @@ export function Home() {
     });
     
     return result;
-  }, [stocks, searchQuery, sectorFilter, sortBy]);
+  }, [stocks, searchQuery, sectorFilter, sortBy, goldenCrossPair]);
   
   // 分页
   const totalPages = Math.ceil(filteredStocks.length / STOCKS_PER_PAGE);
@@ -165,6 +175,17 @@ export function Home() {
               </SelectContent>
             </Select>
             
+            <Select value={goldenCrossPair} onValueChange={handleGoldenCrossPairChange}>
+              <SelectTrigger className="w-full md:w-[140px]">
+                <SelectValue placeholder="金叉均线" />
+              </SelectTrigger>
+              <SelectContent>
+                {MA_PAIRS.map(p => (
+                  <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
             <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="排序方式" />
@@ -206,11 +227,11 @@ export function Home() {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginatedStocks.map(stock => (
-                <StockCard key={stock.id} stock={stock} />
+                <StockCard key={stock.id} stock={stock} goldenCrossPair={goldenCrossPair} />
               ))}
             </div>
           ) : (
-            <StockTable stocks={paginatedStocks} />
+            <StockTable stocks={paginatedStocks} goldenCrossPair={goldenCrossPair} />
           )}
           
           {/* 分页 */}
@@ -247,11 +268,11 @@ export function Home() {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {popularStocksList.map(stock => (
-                <StockCard key={stock.id} stock={stock} />
+                <StockCard key={stock.id} stock={stock} goldenCrossPair={goldenCrossPair} />
               ))}
             </div>
           ) : (
-            <StockTable stocks={popularStocksList} />
+            <StockTable stocks={popularStocksList} goldenCrossPair={goldenCrossPair} />
           )}
         </TabsContent>
         
@@ -263,11 +284,11 @@ export function Home() {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topGainers.map(stock => (
-                <StockCard key={stock.id} stock={stock} />
+                <StockCard key={stock.id} stock={stock} goldenCrossPair={goldenCrossPair} />
               ))}
             </div>
           ) : (
-            <StockTable stocks={topGainers} />
+            <StockTable stocks={topGainers} goldenCrossPair={goldenCrossPair} />
           )}
         </TabsContent>
         
@@ -279,11 +300,11 @@ export function Home() {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topLosers.map(stock => (
-                <StockCard key={stock.id} stock={stock} />
+                <StockCard key={stock.id} stock={stock} goldenCrossPair={goldenCrossPair} />
               ))}
             </div>
           ) : (
-            <StockTable stocks={topLosers} />
+            <StockTable stocks={topLosers} goldenCrossPair={goldenCrossPair} />
           )}
         </TabsContent>
       </Tabs>

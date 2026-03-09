@@ -1,4 +1,4 @@
-import { Stock, formatGoldenCrossDate } from '../utils/mockData';
+import { Stock, formatGoldenCrossDate, MA_PAIRS, type GoldenCrossPairKey } from '../utils/mockData';
 import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import { Link } from 'react-router';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -8,9 +8,11 @@ import { useState } from 'react';
 
 interface StockTableProps {
   stocks: Stock[];
+  goldenCrossPair?: GoldenCrossPairKey;
 }
 
-export function StockTable({ stocks }: StockTableProps) {
+export function StockTable({ stocks, goldenCrossPair = '5-20' }: StockTableProps) {
+  const pairLabel = MA_PAIRS.find(p => p.key === goldenCrossPair)?.label ?? 'MA5/20';
   const [favorites, setFavorites] = useState<Set<string>>(new Set(stocks.map(s => s.code).filter(isFavorite)));
   
   const handleToggleFavorite = (stockCode: string) => {
@@ -37,7 +39,7 @@ export function StockTable({ stocks }: StockTableProps) {
             <TableHead className="w-20 text-right tabular-nums">涨跌</TableHead>
             <TableHead className="w-20 text-right tabular-nums">涨跌幅</TableHead>
             <TableHead className="w-20 text-right tabular-nums hidden md:table-cell">成交量</TableHead>
-            <TableHead className="w-28 text-right">最近金叉</TableHead>
+            <TableHead className="w-28 text-right">最近金叉 ({pairLabel})</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -97,7 +99,7 @@ export function StockTable({ stocks }: StockTableProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <Link to={`/stock/${stock.code}`} className="font-medium text-primary">
-                    {stock.lastGoldenCross ? formatGoldenCrossDate(stock.lastGoldenCross) : '-'}
+                    {stock.lastGoldenCrossByPair[goldenCrossPair] ? formatGoldenCrossDate(stock.lastGoldenCrossByPair[goldenCrossPair]!) : '-'}
                   </Link>
                 </TableCell>
               </TableRow>

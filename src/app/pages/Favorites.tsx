@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { generateStocks, Stock } from '../utils/mockData';
-import { getFavorites } from '../utils/storage';
+import { generateStocks, Stock, type GoldenCrossPairKey } from '../utils/mockData';
+import { getFavorites, getGoldenCrossPair } from '../utils/storage';
 import { StockCard } from '../components/StockCard';
 import { StockTable } from '../components/StockTable';
 import { Button } from '../components/ui/button';
@@ -11,6 +11,7 @@ export function Favorites() {
   const [stocks] = useState<Stock[]>(() => generateStocks(3000));
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [favorites, setFavorites] = useState<string[]>(getFavorites());
+  const goldenCrossPair = (getGoldenCrossPair() || '5-20') as GoldenCrossPairKey;
   
   // 刷新自选股列表
   const refreshFavorites = () => {
@@ -88,11 +89,11 @@ export function Favorites() {
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {favoriteStocks.map(stock => (
-            <StockCard key={stock.id} stock={stock} />
+            <StockCard key={stock.id} stock={stock} goldenCrossPair={goldenCrossPair} />
           ))}
         </div>
       ) : (
-        <StockTable stocks={favoriteStocks} />
+        <StockTable stocks={favoriteStocks} goldenCrossPair={goldenCrossPair} />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
-import { generateStocks, generateIndicators, generatePriceHistory, detectGoldenCrossEvents } from '../utils/mockData';
+import { generateStocks, generateIndicators, generatePriceHistory, detectGoldenCrossEvents, MA_PAIRS } from '../utils/mockData';
 import { SubscriptionForm } from '../components/SubscriptionForm';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -30,8 +30,12 @@ export function StockDetail() {
     return stock ? generatePriceHistory(stock) : [];
   }, [stock]);
 
-  const goldenCrossEvents = useMemo(() => {
-    return detectGoldenCrossEvents(priceHistory);
+  const goldenCrossEventsByPair = useMemo(() => {
+    const byPair: Record<string, ReturnType<typeof detectGoldenCrossEvents>> = {};
+    for (const pair of MA_PAIRS) {
+      byPair[pair.key] = detectGoldenCrossEvents(priceHistory, pair.short, pair.long, pair.key);
+    }
+    return byPair;
   }, [priceHistory]);
   
   if (!stock || !indicators) {
@@ -226,38 +230,52 @@ export function StockDetail() {
             
             <Card className="p-6 md:col-span-2">
               <h3 className="text-lg font-semibold mb-4">黄金交叉记录</h3>
-              {goldenCrossEvents.length > 0 ? (
-                <div className="rounded-md border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left p-3 font-medium">日期</th>
-                        <th className="text-left p-3 font-medium">时间</th>
-                        <th className="text-right p-3 font-medium">MA5</th>
-                        <th className="text-right p-3 font-medium">MA20</th>
-                        <th className="text-right p-3 font-medium">收盘价</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {goldenCrossEvents.map((event, i) => {
-                        const [, m, d] = event.date.split('-');
-                        const dateStr = `${parseInt(m, 10)}月${parseInt(d, 10)}日`;
-                        return (
-                        <tr key={i} className="border-b last:border-0">
-                          <td className="p-3">{dateStr}</td>
-                          <td className="p-3">{event.time}</td>
-                          <td className="p-3 text-right font-medium text-primary">{event.shortMA}</td>
-                          <td className="p-3 text-right">{event.longMA}</td>
-                          <td className="p-3 text-right">HK${event.close.toFixed(2)}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-muted-foreground py-4">近90日内暂无黄金交叉</p>
-              )}
+              <Tabs defaultValue={MA_PAIRS[0].key} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  {MA_PAIRS.map(p => (
+                    <TabsTrigger key={p.key} value={p.key}>{p.label}</TabsTrigger>
+                  ))}
+                </TabsList>
+                {MA_PAIRS.map(pair => {
+                  const events = goldenCrossEventsByPair[pair.key] ?? [];
+                  return (
+                    <TabsContent key={pair.key} value={pair.key} className="mt-4">
+                      {events.length > 0 ? (
+                        <div className="rounded-md border overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="text-left p-3 font-medium">日期</th>
+                                <th className="text-left p-3 font-medium">时间</th>
+                                <th className="text-right p-3 font-medium">MA{pair.short}</th>
+                                <th className="text-right p-3 font-medium">MA{pair.long}</th>
+                                <th className="text-right p-3 font-medium">收盘价</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {events.map((event, i) => {
+                                const [, m, d] = event.date.split('-');
+                                const dateStr = `${parseInt(m, 10)}月${parseInt(d, 10)}日`;
+                                return (
+                                  <tr key={i} className="border-b last:border-0">
+                                    <td className="p-3">{dateStr}</td>
+                                    <td className="p-3">{event.time}</td>
+                                    <td className="p-3 text-right font-medium text-primary">{event.shortMA}</td>
+                                    <td className="p-3 text-right">{event.longMA}</td>
+                                    <td className="p-3 text-right">HK${event.close.toFixed(2)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground py-4">近90日内暂无{pair.label}黄金交叉</p>
+                      )}
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
             </Card>
 
             <Card className="p-6 md:col-span-2">

@@ -24,6 +24,7 @@ export interface Notification {
 const SUBSCRIPTIONS_KEY = 'hk_stock_subscriptions';
 const NOTIFICATIONS_KEY = 'hk_stock_notifications';
 const FAVORITES_KEY = 'hk_stock_favorites';
+const GOLDEN_CROSS_PAIR_KEY = 'hk_golden_cross_pair';
 
 // 订阅管理
 export function getSubscriptions(): Subscription[] {
@@ -152,4 +153,14 @@ export function removeFavorite(stockCode: string): void {
 export function isFavorite(stockCode: string): boolean {
   const favorites = getFavorites();
   return favorites.includes(stockCode);
+}
+
+// 金叉均线组合偏好（用于列表排序与「最近金叉」列）
+export function getGoldenCrossPair(): string {
+  const v = localStorage.getItem(GOLDEN_CROSS_PAIR_KEY);
+  return v ?? '5-20';
+}
+
+export function setGoldenCrossPair(pairKey: string): void {
+  localStorage.setItem(GOLDEN_CROSS_PAIR_KEY, pairKey);
 }
